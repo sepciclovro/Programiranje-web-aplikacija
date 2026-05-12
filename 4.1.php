@@ -9,10 +9,8 @@
     <h2>ZADATAK: Odabir vozila</h2>
 
     <?php
-    // Definiranje polja automobila
     $cars = array("Audi", "BMW", "Renault", "Citroen");
 
-    // Provjera je li forma poslana
     if (isset($_POST['car_selection'])) {
         $selected_car = $_POST['car_selection'];
         echo "<p><strong>Odabrali ste vozilo: $selected_car</strong></p>";
@@ -24,7 +22,6 @@
         <p>Označi vozilo:</p>
         
         <?php
-        // Generiranje radio gumba pomoću foreach petlje
         foreach ($cars as $car) {
             echo '<label>';
             echo '<input type="radio" name="car_selection" value="' . $car . '" required> ' . $car;
