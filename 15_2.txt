@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+    <meta charset="UTF-8">
+    <title>Tražilica korisnika</title>
+</head>
+<body>
+
+    <h2>Pretraga korisnika</h2>
+    <form action="pretraga.php" method="GET">
+        <div>
+            <label>Unesite ime ili prezime:</label>
+            <input type="text" name="pojam" required>
+        </div>
+        <br>
+        <button type="submit">Pretraži</button>
+    </form>
+
+</body>
+</html>
+
+<?php
+$host = "localhost";
+$db_user = "root";
+$db_pass = "";
+$db_name = "vjezba_14";
+
+$dbc = mysqli_connect($host, $db_user, $db_pass, $db_name);
+
+if (!$dbc) {
+    die("Greška prilikom spajanja na bazu: " . mysqli_connect_error());
+}
+
+mysqli_set_charset($dbc, "utf8mb4");
+
+if (isset($_GET['pojam'])) {
+    $pojam = trim($_GET['pojam']);
+    $search_term = "%" . $pojam . "%";
+
+    $query = "SELECT name, lastname, username, email FROM users WHERE name LIKE ? OR lastname LIKE ?";
+    $stmt = mysqli_prepare($dbc, $query);
+    
+    mysqli_stmt_bind_param($stmt, "ss", $search_term, $search_term);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    if (mysqli_num_rows($result) > 0) {
+        echo "<h3>Rezultati pretrage za: " . htmlspecialchars($pojam) . "</h3>";
+        echo "<table border='1' cellpadding='10'>";
+        echo "<tr><th>Ime</th><th>Prezime</th><th>Korisničko ime</th><th>Email</th></tr>";
+        
+        while ($row = mysqli_fetch_assoc($result)) {
+            echo "<tr>";
+            echo "<td>" . htmlspecialchars($row['name']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['lastname']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['username']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['email']) . "</td>";
+            echo "</tr>";
+        }
+        echo "</table>";
+    } else {
+        echo "<h3>Nema rezultata za pojam: " . htmlspecialchars($pojam) . "</h3>";
+    }
+
+    mysqli_stmt_close($stmt);
+}
+
+mysqli_close($dbc);
+?>

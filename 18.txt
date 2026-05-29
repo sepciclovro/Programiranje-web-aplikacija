@@ -1,0 +1,130 @@
+<?php
+$conn = mysqli_connect("localhost", "root", "", "vjezba_17");
+
+if (!$conn) {
+    die("Došlo je do pogreške pri radu s bazom podataka: " . mysqli_connect_error());
+}
+
+mysqli_set_charset($conn, "utf8mb4");
+
+$query = "
+    SELECT users.id, users.firstname, users.lastname, countries.country_name 
+    FROM users 
+    INNER JOIN countries ON users.country_id = countries.id
+";
+
+$result = mysqli_query($conn, $query);
+
+if (mysqli_num_rows($result) > 0) {
+    echo "<ul>";
+    while ($row = mysqli_fetch_assoc($result)) {
+        $fullname = htmlspecialchars($row['firstname'] . " " . $row['lastname']);
+        $country = htmlspecialchars($row['country_name']);
+        $edit_link = "uredi.php?id=" . intval($row['id']);
+        
+        echo "<li>" . $fullname . " (" . $country . ") - <a href='" . $edit_link . "'>Uredi</a></li>";
+    }
+    echo "</ul>";
+} else {
+    echo "<p>Nema pronađenih korisnika.</p>";
+}
+
+mysqli_close($conn);
+?>
+
+
+<?php
+$conn = mysqli_connect("localhost", "root", "", "vjezba_17");
+
+if (!$conn) {
+    die("Došlo je do pogreške pri radu s bazom podataka: " . mysqli_connect_error());
+}
+
+mysqli_set_charset($conn, "utf8mb4");
+
+if (isset($_POST['azuriraj'])) {
+    $id = intval($_POST['id']);
+    $firstname = trim($_POST['firstname']);
+    $lastname = trim($_POST['lastname']);
+    $country_id = intval($_POST['country_id']);
+
+    $query_update = "UPDATE users SET firstname = ?, lastname = ?, country_id = ? WHERE id = ?";
+    $stmt_update = mysqli_prepare($conn, $query_update);
+    mysqli_stmt_bind_param($stmt_update, "ssii", $firstname, $lastname, $country_id, $id);
+
+    if (mysqli_stmt_execute($stmt_update)) {
+        header("Location: index.php");
+        mysqli_stmt_close($stmt_update);
+        mysqli_close($conn);
+        exit();
+    } else {
+        echo "Došlo je do pogreške prilikom ažuriranja: " . mysqli_error($conn);
+    }
+    mysqli_stmt_close($stmt_update);
+}
+
+if (isset($_GET['id'])) {
+    $id = intval($_GET['id']);
+
+    $query_user = "SELECT firstname, lastname, country_id FROM users WHERE id = ?";
+    $stmt_user = mysqli_prepare($conn, $query_user);
+    mysqli_stmt_bind_param($stmt_user, "i", $id);
+    mysqli_stmt_execute($stmt_user);
+    $result_user = mysqli_stmt_get_result($stmt_user);
+    $user = mysqli_fetch_assoc($result_user);
+    mysqli_stmt_close($stmt_user);
+
+    if (!$user) {
+        die("Korisnik ne postoji.");
+    }
+
+    $query_countries = "SELECT id, country_name FROM countries";
+    $result_countries = mysqli_query($conn, $query_countries);
+} else {
+    header("Location: index.php");
+    exit();
+}
+?>
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <title>Uredi korisnika</title>
+</head>
+<body>
+
+    <h2>Uredi korisnika</h2>
+    <form action="uredi.php" method="POST">
+        <input type="hidden" name="id" value="<?php echo $id; ?>">
+        
+        <div>
+            <label>Ime:</label><br>
+            <input type="text" name="firstname" value="<?php echo htmlspecialchars($user['firstname']); ?>" required>
+        </div>
+        <br>
+        <div>
+            <label>Prezime:</label><br>
+            <input type="text" name="lastname" value="<?php echo htmlspecialchars($user['lastname']); ?>" required>
+        </div>
+        <br>
+        <div>
+            <label>Država:</label><br>
+            <select name="country_id" required>
+                <?php
+                while ($country = mysqli_fetch_assoc($result_countries)) {
+                    $selected = ($country['id'] == $user['country_id']) ? "selected" : "";
+                    echo "<option value='" . intval($country['id']) . "' $selected>" . htmlspecialchars($country['country_name']) . "</option>";
+                }
+                ?>
+            </select>
+        </div>
+        <br>
+        <button type="submit" name="azuriraj">Spremi izmjene</button>
+        <a href="index.php">Odustani</a>
+    </form>
+
+</body>
+</html>
+<?php
+mysqli_close($conn);
+?>

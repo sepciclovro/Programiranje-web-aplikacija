@@ -1,0 +1,120 @@
+CREATE DATABASE IF NOT EXISTS vjezba_16 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE vjezba_16;
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    firstname VARCHAR(50) NOT NULL,
+    lastname VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    username VARCHAR(10) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    country VARCHAR(100) NOT NULL
+);
+
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <title>Registration Form</title>
+</head>
+<body>
+
+    <h2>Registration Form</h2>
+    <form action="registracija.php" method="POST">
+        <div>
+            <label>First Name *</label><br>
+            <input type="text" name="firstname" placeholder="Your name.." required>
+        </div>
+        <br>
+        <div>
+            <label>Last Name *</label><br>
+            <input type="text" name="lastname" placeholder="Your last name.." required>
+        </div>
+        <br>
+        <div>
+            <label>Your E-mail *</label><br>
+            <input type="email" name="email" placeholder="Your e-mail.." required>
+        </div>
+        <br>
+        <div>
+            <label>Username:* <span style="color:red;">(Username must have min 5 and max 10 char)</span></label><br>
+            <input type="text" name="username" placeholder="Username.." minlength="5" maxlength="10" required>
+        </div>
+        <br>
+        <div>
+            <label>Password:* <span style="color:red;">(Password must have min 4 char)</span></label><br>
+            <input type="password" name="password" placeholder="Password.." minlength="4" required>
+        </div>
+        <br>
+        <div>
+            <label>Country:</label><br>
+            <select name="country" required>
+                <option value="">molimo odaberite</option>
+                <option value="Hrvatska">Hrvatska</option>
+                <option value="Bosna i Hercegovina">Bosna i Hercegovina</option>
+                <option value="Slovenija">Slovenija</option>
+            </select>
+        </div>
+        <br>
+        <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; cursor: pointer;">Submit</button>
+    </form>
+
+</body>
+</html>
+
+<?php
+$conn = mysqli_connect("localhost", "root", "", "vjezba_16");
+
+if (!$conn) {
+    die("Došlo je do pogreške pri radu s bazom podataka: " . mysqli_connect_error());
+}
+
+mysqli_set_charset($conn, "utf8mb4");
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $firstname = trim($_POST['firstname']);
+    $lastname = trim($_POST['lastname']);
+    $email = trim($_POST['email']);
+    $username = trim($_POST['username']);
+    $password = $_POST['password'];
+    $country = $_POST['country'];
+
+    if (strlen($username) < 5 || strlen($username) > 10) {
+        die("Korisničko ime mora imati između 5 i 10 znakova.");
+    }
+
+    if (strlen($password) < 4) {
+        die("Lozinka mora imati minimalno 4 znaka.");
+    }
+
+    $query_check = "SELECT id FROM users WHERE username = ? OR email = ?";
+    $stmt_check = mysqli_prepare($conn, $query_check);
+    mysqli_stmt_bind_param($stmt_check, "ss", $username, $email);
+    mysqli_stmt_execute($stmt_check);
+    mysqli_stmt_store_result($stmt_check);
+
+    if (mysqli_stmt_num_rows($stmt_check) > 0) {
+        echo "<h3>Korisničko ime ili email se već koriste.</h3>";
+        mysqli_stmt_close($stmt_check);
+    } else {
+        mysqli_stmt_close($stmt_check);
+
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+        $query_insert = "INSERT INTO users (firstname, lastname, email, username, password, country) VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt_insert = mysqli_prepare($conn, $query_insert);
+        
+        mysqli_stmt_bind_param($stmt_insert, "ssssss", $firstname, $lastname, $email, $username, $hashed_password, $country);
+
+        if (mysqli_stmt_execute($stmt_insert)) {
+            echo "<h3>Registracija je uspješno završena!</h3>";
+        } else {
+            echo "Došlo je do pogreške prilikom upisa: " . mysqli_error($conn);
+        }
+
+        mysqli_stmt_close($stmt_insert);
+    }
+}
+
+mysqli_close($conn);
+?>
